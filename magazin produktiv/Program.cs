@@ -39,21 +39,19 @@ namespace MagazApp
             public int Id;                 // int
             public string FullName;        // string
             public string Phone;           // string
-            public bool IsPreferred;       // bool
             public DateTime Joined;        // DateTime
 
-            public Client(int id, string fullName, string phone, bool isPreferred, DateTime joined)
+            public Client(int id, string fullName, string phone, DateTime joined)
             {
                 Id = id;
                 FullName = fullName;
                 Phone = phone;
-                IsPreferred = isPreferred;
                 Joined = joined;
             }
 
             public override string ToString()
             {
-                return $"{Id}. {FullName} | {Phone} | VIP: {IsPreferred} | Joined: {Joined:d}";
+                return $"{Id}. {FullName} | {Phone}  | Joined: {Joined:d}";
             }
         }
 
@@ -132,7 +130,7 @@ namespace MagazApp
 
                 if (ch == "1")
                 {
-                    if (LoginUser()) // do-while inside
+                    if (LoginUser())
                     {
                         ShowIntro();
                         ShowMainMenu();
@@ -243,6 +241,7 @@ namespace MagazApp
                 Console.WriteLine("6. Звіт");
                 Console.WriteLine("7. Зберегти дані");
                 Console.WriteLine("8. Видалити тестові дані");
+                Console.WriteLine("9. Порівняти власне сортування з List.Sort()");
                 Console.WriteLine("0. Вихід");
                 Console.Write("Виберіть пункт: ");
 
@@ -262,6 +261,10 @@ namespace MagazApp
                     case "8":
                         ClearTestData();
                         break;
+                    case "9":
+                        CompareSorting();
+                        break;
+
                     case "0":
                         Console.WriteLine("До побачення!");
                         exit = true;
@@ -272,6 +275,57 @@ namespace MagazApp
                 }
             }
         }
+//Bubble Sort
+        static List<Product> BubbleSortByPrice(List<Product> list)
+        {
+            List<Product> sorted = new List<Product>(list); // копія
+
+            int n = sorted.Count;
+            for (int i = 0; i < n - 1; i++)
+            {
+                for (int j = 0; j < n - i - 1; j++)
+                {
+                    if (sorted[j].Price > sorted[j + 1].Price)
+                    {
+                        // міняємо елементи місцями
+                        Product temp = sorted[j];
+                        sorted[j] = sorted[j + 1];
+                        sorted[j + 1] = temp;
+                    }
+                }
+            }
+            return sorted;
+        }
+
+//Порівняння з List.Sort()
+        static void CompareSorting()
+        {
+            if (products.Count == 0)
+            {
+                Console.WriteLine("Немає продуктів для сортування.");
+                return;
+            }
+
+            Console.WriteLine("\n=== Порівняння Bubble Sort і List.Sort ===\n");
+
+            // Bubble Sort
+            List<Product> bubbleSorted = BubbleSortByPrice(products);
+
+            // List.Sort()
+            List<Product> defaultSorted = new List<Product>(products);
+            defaultSorted.Sort((a, b) => a.Price.CompareTo(b.Price));
+
+            Console.WriteLine("=== Bubble Sort результат ===");
+            foreach (var p in bubbleSorted)
+                Console.WriteLine($"{p.Id}. {p.Name} — {p.Price}");
+
+            Console.WriteLine("\n=== List.Sort результат ===");
+            foreach (var p in defaultSorted)
+                Console.WriteLine($"{p.Id}. {p.Name} — {p.Price}");
+
+            Console.WriteLine("\nПорівняння завершено.\n");
+        }
+
 
         //товари
         static void ProductsMenu()
@@ -394,25 +448,33 @@ namespace MagazApp
             Console.WriteLine("Товар видалено.");
         }
 
-
         //кліент
         static void ClientsMenu()
         {
             while (true)
             {
                 Console.WriteLine("\n=== Меню клієнтів ===");
-                Console.WriteLine("1. Додати клієнта");
-                Console.WriteLine("2. Переглянути клієнтів");
+                Console.WriteLine("1. Додати клієнтів");
+                Console.WriteLine("2. Показати всіх");
+                Console.WriteLine("3. Пошук клієнта");
+                Console.WriteLine("4. Видалити клієнта");
+                Console.WriteLine("5. Редагувати клієнта");
+                Console.WriteLine("6. Сортувати за ім’ям");
                 Console.WriteLine("0. Назад");
-                Console.Write("Вибір: ");
-                string c = Console.ReadLine();
-                if (c == "0") return;
 
-                switch (c)
+                Console.Write("Ваш вибір: ");
+                string ch = Console.ReadLine();
+
+                switch (ch)
                 {
                     case "1": AddClientInteractive(); break;
                     case "2": ListClients(); break;
-                    default: Console.WriteLine("Невірний ввід."); break;
+                    case "3": SearchClient(); break;
+                    case "4": DeleteClient(); break;
+                    case "5": EditClient(); break;
+                    case "6": SortClientsByName(); break;
+                    case "0": return;
+                    default: Console.WriteLine("Невірний вибір."); break;
                 }
             }
         }
@@ -430,20 +492,168 @@ namespace MagazApp
             Console.Write("Телефон: ");
             string phone = Console.ReadLine();
 
-            Console.Write("Привілейований? (y/n): ");
-            bool vip = Console.ReadLine().Trim().ToLower() == "y";
-
             int id = clients.Count > 0 ? clients.Max(c => c.Id) + 1 : 1;
-            clients.Add(new Client(id, name, phone, vip, DateTime.Now));
+            clients.Add(new Client(id, name, phone, DateTime.Now));
             SaveData();
             Console.WriteLine("Клієнта додано.");
         }
-
         static void ListClients()
         {
             Console.WriteLine("=== Клієнти ===");
             if (clients.Count == 0) { Console.WriteLine("Порожньо."); return; }
             foreach (var c in clients) Console.WriteLine(c.ToString());
+        }
+
+        static void EditClient()
+        {
+            Console.Write("Введіть ID клієнта для редагування: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("Некоректний ввід.");
+                return;
+            }
+
+            int index = -1;
+            for (int i = 0; i < clients.Count; i++)
+            {
+                if (clients[i].Id == id)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index == -1)
+            {
+                Console.WriteLine("Клієнта з таким ID не знайдено.");
+                return;
+            }
+
+            Client c = clients[index];
+
+            Console.WriteLine("Редагування клієнта:");
+            Console.WriteLine(c.ToString());
+
+            Console.Write("Нове ім'я (Enter щоб пропустити): ");
+            string newName = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(newName))
+                c.FullName = newName;
+
+            Console.Write("Новий телефон (Enter щоб пропустити): ");
+            string newPhone = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(newPhone))
+                c.Phone = newPhone;
+
+            Console.Write("Нова дата приєднання (Enter щоб пропустити, формат yyyy-MM-dd): ");
+            string newDate = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(newDate) &&
+                DateTime.TryParse(newDate, out DateTime jd))
+            {
+                c.Joined = jd;
+            }
+
+            // Оновлюємо в списку
+            clients[index] = c;
+
+            SaveData();
+
+            Console.WriteLine("Клієнт успішно оновлений!");
+        }
+
+        static void DeleteClient()
+        {
+            Console.WriteLine("=== Видалити клієнта ===");
+            if (clients.Count == 0)
+            {
+                Console.WriteLine("Список клієнтів порожній.");
+                return;
+            }
+
+            ListClients();
+            int id = GetIntInputWithPrompt("Введіть ID клієнта для видалення (0 - відміна):");
+            if (id == 0) return;
+
+            int idx = -1;
+            for (int i = 0; i < clients.Count; i++)
+            {
+                if (clients[i].Id == id) { idx = i; break; }
+            }
+            if (idx == -1)
+            {
+                Console.WriteLine("Клієнта з таким ID не знайдено.");
+                return;
+            }
+
+            // Перевіримо бронювання, пов'язані з клієнтом
+            int relatedBookings = 0;
+            for (int i = 0; i < bookings.Count; i++)
+                if (bookings[i].ClientId == id) relatedBookings++;
+
+            if (relatedBookings > 0)
+            {
+                Console.WriteLine($"У клієнта є {relatedBookings} бронюван(ь). Видалити клієнта призведе до видалення цих бронювань і повернення товару на склад.");
+                Console.Write("Підтвердьте видалення (y/n): ");
+                string conf = Console.ReadLine().Trim().ToLower();
+                if (conf != "y" && conf != "yes")
+                {
+                    Console.WriteLine("Операцію скасовано.");
+                    return;
+                }
+
+                // Для кожного бронювання повертаємо товар на склад
+                for (int i = bookings.Count - 1; i >= 0; i--)
+                {
+                    if (bookings[i].ClientId == id)
+                    {
+                        int pid = bookings[i].ProductId;
+                        int qty = bookings[i].Quantity;
+                        // знайдемо продукт і відновимо AvailableCount
+                        for (int j = 0; j < products.Count; j++)
+                        {
+                            if (products[j].Id == pid)
+                            {
+                                var prod = products[j];
+                                prod.AvailableCount += qty;
+                                products[j] = prod;
+                                break;
+                            }
+                        }
+                        bookings.RemoveAt(i);
+                    }
+                }
+            }
+            else
+            {
+                Console.Write("Підтвердьте видалення клієнта (y/n): ");
+                string conf = Console.ReadLine().Trim().ToLower();
+                if (conf != "y" && conf != "yes")
+                {
+                    Console.WriteLine("Операцію скасовано.");
+                    return;
+                }
+            }
+
+            clients.RemoveAt(idx);
+            SaveData();
+            Console.WriteLine("Клієнта (і пов'язані бронювання, якщо були) видалено.");
+        }
+
+        static void SortClientsByName()
+        {
+            for (int i = 0; i < clients.Count - 1; i++)
+            {
+                for (int j = 0; j < clients.Count - i - 1; j++)
+                {
+                    if (string.Compare(clients[j].FullName, clients[j + 1].FullName) > 0)
+                    {
+                        var temp = clients[j];
+                        clients[j] = clients[j + 1];
+                        clients[j + 1] = temp;
+                    }
+                }
+            }
+
+            Console.WriteLine("Список клієнтів відсортовано.");
         }
 
         //бронь
@@ -454,6 +664,8 @@ namespace MagazApp
                 Console.WriteLine("\n=== Меню бронювань ===");
                 Console.WriteLine("1. Створити бронювання");
                 Console.WriteLine("2. Переглянути бронювання");
+                Console.WriteLine("3. Редагувати бронювання");
+                Console.WriteLine("4. Видалення бронювання");
                 Console.WriteLine("0. Назад");
                 Console.Write("Вибір: ");
                 string c = Console.ReadLine();
@@ -463,11 +675,12 @@ namespace MagazApp
                 {
                     case "1": CreateBooking(); break;
                     case "2": ListBookings(); break;
+                    case "3": EditBooking(); break;
+                    case "4": DeleteBooking(); break;
                     default: Console.WriteLine("Невірний ввід."); break;
                 }
             }
         }
-
         static void CreateBooking()
         {
             if (products.Count == 0)
@@ -487,7 +700,7 @@ namespace MagazApp
                 int cid = clients.Count > 0 ? clients.Max(c => c.Id) + 1 : 1;
                 Console.Write("Телефон: ");
                 string phone = Console.ReadLine();
-                clients.Add(new Client(cid, clientName, phone, false, DateTime.Now));
+                clients.Add(new Client(cid, clientName, phone, DateTime.Now));
                 client = clients.First(c => c.Id == cid);
                 Console.WriteLine("Клієнта додано.");
             }
@@ -532,12 +745,197 @@ namespace MagazApp
             SaveData();
             Console.WriteLine("Бронювання створено.");
         }
-
         static void ListBookings()
         {
             Console.WriteLine("=== Бронювання ===");
             if (bookings.Count == 0) { Console.WriteLine("Порожньо."); return; }
             foreach (var b in bookings) Console.WriteLine(b.ToString());
+        }
+        static void EditBooking()
+        {
+            Console.WriteLine("=== Редагувати бронювання ===");
+            if (bookings.Count == 0)
+            {
+                Console.WriteLine("Список бронювань порожній.");
+                return;
+            }
+
+            ListBookings();
+            int bid = GetIntInputWithPrompt("Введіть ID бронювання для редагування (0 - відміна):");
+            if (bid == 0) return;
+
+            int bidx = -1;
+            for (int i = 0; i < bookings.Count; i++)
+            {
+                if (bookings[i].BookingId == bid) { bidx = i; break; }
+            }
+            if (bidx == -1)
+            {
+                Console.WriteLine("Бронювання з таким ID не знайдено.");
+                return;
+            }
+
+            var booking = bookings[bidx];
+            Console.WriteLine("Поточне бронювання: " + booking.ToString());
+
+            // Відновимо товарний запас для поточного бронювання (тимчасово), щоб можна було змінити продукт/кількість
+            bool restored = false;
+            for (int i = 0; i < products.Count; i++)
+            {
+                if (products[i].Id == booking.ProductId)
+                {
+                    var p = products[i];
+                    p.AvailableCount += booking.Quantity;
+                    products[i] = p;
+                    restored = true;
+                    break;
+                }
+            }
+            if (!restored)
+            {
+                Console.WriteLine("Увага: пов'язаний продукт не знайдено у списку товарів. Редагування може призвести до невірних даних.");
+            }
+
+            // Можливість змінити клієнта
+            Console.Write("Новий клієнт (ім'я) (Enter - без змін): ");
+            string newClientName = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(newClientName))
+            {
+                // знайдемо/додамо клієнта
+                int clientId = -1;
+                for (int i = 0; i < clients.Count; i++)
+                {
+                    if (clients[i].FullName.Equals(newClientName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        clientId = clients[i].Id;
+                        break;
+                    }
+                }
+                if (clientId == -1)
+                {
+                    Console.Write("Клієнта не знайдено. Введіть телефон для створення нового клієнта: ");
+                    string phone = Console.ReadLine();
+                    clientId = clients.Count > 0 ? GetMaxClientId() + 1 : 1;
+                    clients.Add(new Client(clientId, newClientName.Trim(), phone, DateTime.Now));
+                    Console.WriteLine($"Клієнт доданий з ID={clientId}.");
+                }
+                booking.ClientId = clientId;
+            }
+
+            // Змінити продукт
+            Console.Write("Змінити товар? (y/n): ");
+            string changeProd = Console.ReadLine().Trim().ToLower();
+            int newProductId = booking.ProductId;
+            if (changeProd == "y" || changeProd == "yes")
+            {
+                ListProducts();
+                newProductId = GetIntInputWithPrompt("Введіть ID нового товару (0 - відміна зміни товару):");
+                if (newProductId == 0)
+                {
+                    Console.WriteLine("Зміна товару скасована, буде використано старий товар.");
+                    newProductId = booking.ProductId;
+                }
+            }
+
+            // Змінити кількість
+            Console.Write("Нова кількість (Enter - без змін): ");
+            string qtyStr = Console.ReadLine();
+            int newQty = booking.Quantity;
+            if (!string.IsNullOrWhiteSpace(qtyStr))
+            {
+                if (!int.TryParse(qtyStr, out newQty) || newQty <= 0)
+                {
+                    Console.WriteLine("Некоректна кількість. Операцію скасовано.");
+                    return;
+                }
+            }
+
+            // Перевірка наявності нового продукту і резервування
+            int prodIndex = -1;
+            for (int i = 0; i < products.Count; i++)
+            {
+                if (products[i].Id == newProductId) { prodIndex = i; break; }
+            }
+            if (prodIndex == -1)
+            {
+                Console.WriteLine("Вказаний продукт не знайдено. Операцію скасовано.");
+                return;
+            }
+
+            if (products[prodIndex].AvailableCount < newQty)
+            {
+                Console.WriteLine($"Недостатньо товару на складі. Доступно: {products[prodIndex].AvailableCount}. Операцію скасовано.");
+                return;
+            }
+
+            // Відняти запас для нового бронювання
+            {
+                var prod = products[prodIndex];
+                prod.AvailableCount -= newQty;
+                products[prodIndex] = prod;
+            }
+
+            // Оновлюємо бронювання
+            booking.ProductId = newProductId;
+            booking.Quantity = newQty;
+            // знайдемо ціну продукту для обчислення total
+            double price = products[prodIndex].Price;
+            booking.Total = price * newQty;
+            booking.BookingDate = DateTime.Now;
+
+            bookings[bidx] = booking;
+            SaveData();
+            Console.WriteLine("Бронювання оновлено.");
+        }
+        static void DeleteBooking()
+        {
+            Console.WriteLine("=== Видалити бронювання ===");
+            if (bookings.Count == 0)
+            {
+                Console.WriteLine("Список бронювань порожній.");
+                return;
+            }
+
+            ListBookings();
+            int bid = GetIntInputWithPrompt("Введіть ID бронювання для видалення (0 - відміна):");
+            if (bid == 0) return;
+
+            int bidx = -1;
+            for (int i = 0; i < bookings.Count; i++)
+            {
+                if (bookings[i].BookingId == bid) { bidx = i; break; }
+            }
+            if (bidx == -1)
+            {
+                Console.WriteLine("Бронювання з таким ID не знайдено.");
+                return;
+            }
+
+            var booking = bookings[bidx];
+            Console.WriteLine("Поточне бронювання: " + booking.ToString());
+            Console.Write("Підтвердьте видалення бронювання (y/n): ");
+            string conf = Console.ReadLine().Trim().ToLower();
+            if (conf != "y" && conf != "yes")
+            {
+                Console.WriteLine("Операцію скасовано.");
+                return;
+            }
+
+            // Повертаємо товар на склад
+            for (int i = 0; i < products.Count; i++)
+            {
+                if (products[i].Id == booking.ProductId)
+                {
+                    var prod = products[i];
+                    prod.AvailableCount += booking.Quantity;
+                    products[i] = prod;
+                    break;
+                }
+            }
+
+            bookings.RemoveAt(bidx);
+            SaveData();
+            Console.WriteLine("Бронювання видалено, товар повернено на склад.");
         }
 
         //пошук
@@ -546,11 +944,16 @@ namespace MagazApp
             Console.WriteLine("\n=== Пошук ===");
             Console.WriteLine("1. Пошук товару");
             Console.WriteLine("2. Пошук клієнта");
+            Console.WriteLine("3. Пошук броні");
             Console.Write("Вибір: ");
             string c = Console.ReadLine();
-            if (c == "1") SearchProduct();
-            else if (c == "2") SearchClient();
-            else Console.WriteLine("Невірний ввід.");
+            switch (c)
+            {
+                case "1": SearchProduct(); break;
+                case "2": SearchClient(); break;
+                case "3": SearchBooking(); break;
+                default: Console.WriteLine("Невірний ввід."); break;
+            }
         }
 
         static void SearchProduct()
@@ -586,6 +989,26 @@ namespace MagazApp
             }
             if (!found) Console.WriteLine("Нічого не знайдено.");
         }
+        static void SearchBooking()
+        {
+            Console.Write("Введіть ID клієнта або товару: ");
+            string q = Console.ReadLine();
+
+            bool found = false;
+
+            foreach (var b in bookings)
+            {
+                if (b.ClientId.ToString() == q || b.ProductId.ToString() == q)
+                {
+                    Console.WriteLine(b.ToString());
+                    found = true;
+                }
+            }
+
+            if (!found)
+                Console.WriteLine("Бронювання не знайдено.");
+        }
+
 
         //стат
         static void ShowStatistics()
@@ -624,6 +1047,9 @@ namespace MagazApp
             Console.WriteLine($"Кількість позицій з ціною > 500: {countPriceOver500}");
             Console.WriteLine($"Мінімальна ціна: {minPrice}");
             Console.WriteLine($"Максимальна ціна: {maxPrice}");
+            Console.WriteLine($"Кількість товарів: {products.Count}");
+            Console.WriteLine($"Кількість клієнтів: {clients.Count}");
+            Console.WriteLine($"Кількість бронювань: {bookings.Count}");
         }
 
         //звіт
@@ -727,7 +1153,7 @@ namespace MagazApp
                 File.WriteAllLines(productsFile, prodLines);
 
                 // clients
-                var clientLines = clients.ConvertAll(c => $"{c.Id}|{c.FullName}|{c.Phone}|{c.IsPreferred}|{c.Joined:o}");
+                var clientLines = clients.ConvertAll(c => $"{c.Id}|{c.FullName}|{c.Phone}|{c.Joined:o}");
                 File.WriteAllLines(clientsFile, clientLines);
 
                 // bookings
@@ -772,12 +1198,12 @@ namespace MagazApp
                     foreach (var line in File.ReadAllLines(clientsFile))
                     {
                         var p = line.Split('|');
-                        if (p.Length >= 5 &&
+                        // saved format: Id|FullName|Phone|Joined:o
+                        if (p.Length >= 4 &&
                             int.TryParse(p[0], out int id) &&
-                            bool.TryParse(p[3], out bool vip) &&
-                            DateTime.TryParse(p[4], null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime joined))
+                            DateTime.TryParse(p[3], null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime joined))
                         {
-                            clients.Add(new Client(id, p[1], p[2], vip, joined));
+                            clients.Add(new Client(id, p[1], p[2], joined));
                         }
                     }
                 }
@@ -843,35 +1269,11 @@ namespace MagazApp
             }
             else Console.WriteLine("Отмена.");
         }
+
+        static int GetMaxClientId()
+        {
+            if (clients == null || clients.Count == 0) return 0;
+            return clients.Max(c => c.Id);
+        }
     }
 }
-
-
-
-
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⣠⠤⠶⠶⠤⠴⢤⠶⠤⠤⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⡞⠉⠁⣴⡆⣸⣿⣿⣿⣿⠛⣷⣌⡻⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠘⠿⣿⣿⣿⣿⣿⣿⣦⣿⣿⣿⣿⣿⣿⣮⢻⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣯⣀⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⢿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡿⢈⣽⣿⣿⠟⠛⠛⠉⠛⠉⠁⠀⠀⠀⠘⢻⣿⣧⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢥⣼⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⢘⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⡇⠀⣀⣀⣀⣠⣄⠀⠀⢠⣤⣄⣀⠀⣿⡿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⢿⢿⣿⡇⠀⠻⣿⣭⣽⢹⣇⠀⠘⣿⣶⣮⠟⢹⣇⢛⡁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣘⣿⡇⠀⠚⠉⠀⠂⠈⣙⠀⠀⠈⠀⠀⠀⣘⣻⠿⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡺⣧⠈⢷⡄⠀⠀⠀⠀⢠⣶⣤⠀⢠⡄⢀⡄⢸⣿⣴⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠣⣽⣶⣾⣄⡀⠀⠀⠀⢘⣇⣉⣀⡀⠃⠘⣶⢫⣴⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠃⠈⣿⣇⠀⠀⠀⢿⡿⡶⢿⣟⣠⣤⣏⣾⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⢹⡽⠆⠀⠀⢀⡽⠷⢶⣶⠶⣯⣯⡍⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⡟⢸⣷⠀⠀⠀⠀⢀⣠⢿⣿⡀⣿⡇⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣾⣿⣿⢸⣿⠀⠀⠀⠀⠈⠁⣸⡏⡷⣏⢻⣦⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣶⣿⣿⣿⣿⣿⣿⡆⠻⣆⢠⠂⣠⣀⣰⣟⣻⣯⣸⠈⣿⣿⣿⣿⣶⣦⣤⣀⡀⠀⠀⠀⠀⠀⠀
-//⠀⠀⠀⠀⠀⠀⣀⣤⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠙⢧⡀⠀⠀⠸⣯⣿⣿⣽⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣄⡀⠀⠀
-//⠀⠀⢀⣠⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⣄⠈⢻⣄⠀⠀⢩⣟⡈⠁⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⠀
-//⠀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠈⠀⠀⠈⠓⠶⠿⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄
-//⠰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⣿⣿⣿⣿⣿⣦⡔⠶⠶⢦⣤⣤⠀⠀⣤⣀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇
-//⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠁⢰⣼⠿⠿⣿⣿⣿⣿⠛⠛⠒⠶⠶⠶⢤⣠⣬⣽⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷
-//⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠁⡞⣿⠉⠈⠀⠛⠻⢿⣿⣟⠛⠓⠒⠶⠶⢾⣧⣶⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-//⢹⣇⢻⣿⣿⣿⣿⣿⣿⣿⣿⠇⢾⠃⠙⠓⠒⠰⣴⣶⣾⣿⣿⠛⠛⠛⠒⠒⢻⠠⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-//⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣸⠀⠀⠀⣤⠀⠈⢻⣿⣿⣿⡛⠛⠛⠛⠒⠚⠶⢶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-//⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣏⠁⠀⠈⠀⢬⣤⣶⣿⣿⣿⣿⣟⠉⠛⠛⠛⣿⡾⢶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
